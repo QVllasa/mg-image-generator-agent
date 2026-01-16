@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  room-stager:
+    build: .
+    container_name: room-stager
+    ports:
+      - "8000:8000"
+    environment:
+      # fal.ai
+      - FAL_API_KEY=${FAL_API_KEY}
+      - FAL_KEY=${FAL_API_KEY}
+
+      # vLLM (Qwen3-VL)
+      - VLLM_ENDPOINT=${VLLM_ENDPOINT:-http://host.docker.internal:8081/v1}
+      - VLLM_MODEL=${VLLM_MODEL:-qwen3-vl-thinking}
+      - VLLM_REQUEST_TIMEOUT=${VLLM_REQUEST_TIMEOUT:-300}
+
+      # Server
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # Limits
+      - MAX_IMAGES_PER_REQUEST=${MAX_IMAGES_PER_REQUEST:-5}
+      - MAX_RETRIES=${MAX_RETRIES:-2}
+
+      # MeiliSearch
+      - MEILISEARCH_PRODUCTS_URL=${MEILISEARCH_PRODUCTS_URL:-http://host.docker.internal:7700}
+      - MEILISEARCH_PRODUCTS_KEY=${MEILISEARCH_PRODUCTS_KEY:-}
+      - MEILISEARCH_METADATA_URL=${MEILISEARCH_METADATA_URL:-http://host.docker.internal:7701}
+      - MEILISEARCH_METADATA_KEY=${MEILISEARCH_METADATA_KEY:-}
+      - PRODUCTS_PER_TYPE=${PRODUCTS_PER_TYPE:-5}
+    volumes:
+      - ./logs:/app/logs
+      - ./test_images:/app/test_images
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  default:
+    name: room-stager-network

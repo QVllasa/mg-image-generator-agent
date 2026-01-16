@@ -365,6 +365,80 @@ class MeiliSearchService:
 
         return " AND ".join(filters)
 
+    async def get_product_by_id(
+        self,
+        product_id: str,
+    ) -> Optional[ProductCandidate]:
+        """
+        Fetch a single product by its product_group_id from MeiliSearch.
+
+        Args:
+            product_id: The product_group_id to look up
+
+        Returns:
+            ProductCandidate if found, None otherwise
+        """
+        try:
+            filter_expression = f'product_group_id = "{product_id}"'
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.products_url}/indexes/{self.products_index}/search",
+                    json={
+                        "q": "",
+                        "filter": filter_expression,
+                        "limit": 1,
+                        "attributesToRetrieve": [
+                            "product_group_id", "ean", "title", "category_identifier",
+                            "price", "image_url", "thumbnail", "images", "style", "color",
+                            "total_width", "total_height", "total_depth",
+                            "average_rating", "brand_name"
+                        ],
+                    },
+                    headers=self._get_headers(self.products_api_key),
+                )
+                response.raise_for_status()
+                data = response.json()
+
+            hits = data.get("hits", [])
+            if not hits:
+                logger.warning(f"Product not found: {product_id}")
+                return None
+
+            hit = hits[0]
+            product = ProductCandidate(
+                product_id=str(hit.get("product_group_id", "")),
+                ean=hit.get("ean", ""),
+                name=hit.get("title", ""),
+                furniture_type="",  # Will be set by caller
+                category=hit.get("category_identifier", ""),
+                price=hit.get("price", 0.0),
+                image_url=hit.get("image_url", ""),
+                thumbnail=hit.get("thumbnail", ""),
+                images=hit.get("images", []) or [],
+                style=hit.get("style", []) or [],
+                color=hit.get("color", []) or [],
+                dimensions={
+                    "width": hit.get("total_width", 0) or 0,
+                    "height": hit.get("total_height", 0) or 0,
+                    "depth": hit.get("total_depth", 0) or 0,
+                },
+                average_rating=hit.get("average_rating"),
+                brand_name=hit.get("brand_name"),
+            )
+
+            logger.info(
+                "Product fetched by ID",
+                product_id=product_id,
+                name=product.name,
+                image_count=len(product.images),
+            )
+            return product
+
+        except Exception as e:
+            logger.error(f"Failed to fetch product by ID: {e}", product_id=product_id)
+            return None
+
     async def search_products(
         self,
         filter_expression: str,

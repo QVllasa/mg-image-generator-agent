@@ -475,6 +475,7 @@ Kriterien:
         self,
         staged_base64: str,
         expected_products: List[str],
+        product_id_mapping: Optional[Dict[str, str]] = None,
     ) -> ProductDetectionResult:
         """
         Erkennt die Positionen der Produkte im Staging-Bild.
@@ -485,6 +486,7 @@ Kriterien:
         Args:
             staged_base64: Das fertige Staging-Bild
             expected_products: Liste der erwarteten Produktnamen
+            product_id_mapping: Optional mapping von Produktnamen zu product_id
 
         Returns:
             ProductDetectionResult mit Positionen aller erkannten Produkte
@@ -492,6 +494,7 @@ Kriterien:
         logger.info(
             "Starte Produkt-Positionserkennung",
             expected_products=expected_products,
+            has_id_mapping=product_id_mapping is not None,
         )
 
         products_str = ", ".join(expected_products)
@@ -579,10 +582,24 @@ Gib die Bounding Boxes als Prozent-Werte zurück. Antworte NUR mit JSON."""
             data = json.loads(content.strip())
             result = ProductDetectionResult(**data)
 
+            # Inject product_ids from mapping if provided
+            if product_id_mapping:
+                for product in result.products:
+                    product_name = product.product_name.lower().strip()
+                    # Try exact match first
+                    if product_name in product_id_mapping:
+                        product.product_id = product_id_mapping[product_name]
+                    else:
+                        # Try partial match (e.g., "Sofa" matches "Red Leather Sofa")
+                        for name_key, product_id in product_id_mapping.items():
+                            if product_name in name_key or name_key in product_name:
+                                product.product_id = product_id
+                                break
+
             logger.info(
                 "Produkt-Positionen erkannt",
                 total_detected=result.total_products_detected,
-                products=[p.product_name for p in result.products],
+                products=[(p.product_name, p.product_id) for p in result.products],
             )
             return result
 

@@ -30,6 +30,7 @@ class ProductCandidate(TypedDict):
     price: float
     image_url: str
     thumbnail: str
+    images: List[str]  # All product image URLs from MeiliSearch
     style: List[str]
     color: List[str]
     dimensions: Dict[str, float]
@@ -45,6 +46,7 @@ class SelectedProduct(TypedDict):
     furniture_type: str
     price: float
     image_url: str
+    images: List[str]  # All product image URLs from MeiliSearch
     image_base64: Optional[str]  # Heruntergeladen für FLUX
     selection_reason: str
 

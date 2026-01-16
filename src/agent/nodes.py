@@ -297,10 +297,34 @@ def validate_result_node(state: StagingState) -> Dict[str, Any]:
             try:
                 expected_products = image.get("furniture_added", [])
                 if expected_products:
-                    logger.info("Starte Produkt-Positionserkennung", products=expected_products)
+                    # Build product_id_mapping from selected_products or product_images
+                    product_id_mapping = {}
+
+                    # Check selected_products (MeiliSearch flow)
+                    if state.get("selected_products"):
+                        for p in state["selected_products"]:
+                            name = p.get("name", "").lower().strip()
+                            product_id = p.get("product_id", "")
+                            if name and product_id:
+                                product_id_mapping[name] = product_id
+
+                    # Check product_images (custom flow) - may have product_id
+                    if state.get("product_images"):
+                        for p in state["product_images"]:
+                            name = p.get("name", "").lower().strip()
+                            product_id = p.get("product_id", "")
+                            if name and product_id:
+                                product_id_mapping[name] = product_id
+
+                    logger.info(
+                        "Starte Produkt-Positionserkennung",
+                        products=expected_products,
+                        id_mapping_count=len(product_id_mapping),
+                    )
                     detection = vision_service.detect_product_positions(
                         staged_base64=image["staged_base64"],
                         expected_products=expected_products,
+                        product_id_mapping=product_id_mapping if product_id_mapping else None,
                     )
 
                     # Speichere Positionen im State
@@ -322,7 +346,7 @@ def validate_result_node(state: StagingState) -> Dict[str, Any]:
                     logger.info(
                         "Produktpositionen erkannt",
                         count=len(detection.products),
-                        products=[p.product_name for p in detection.products],
+                        products=[(p.product_name, p.product_id) for p in detection.products],
                     )
             except Exception as pos_error:
                 logger.warning(f"Positionserkennung fehlgeschlagen: {pos_error}")
@@ -572,6 +596,7 @@ async def fetch_products_node(state: StagingState) -> Dict[str, Any]:
                 "price": p.price,
                 "image_url": p.image_url,
                 "thumbnail": p.thumbnail,
+                "images": p.images,  # All product image URLs from MeiliSearch
                 "style": p.style,
                 "color": p.color,
                 "dimensions": p.dimensions,
@@ -637,11 +662,13 @@ def select_products_node(state: StagingState) -> Dict[str, Any]:
                 product["image_base64"] = None
 
     # Konvertiere selected_products zu product_images Format für generate_staged_node
+    # WICHTIG: product_id muss hier mitgegeben werden für Hotspot-Linking
     product_images = [
         {
             "name": p.get("name", "Möbelstück"),
             "base64": p.get("image_base64", ""),
             "ean": p.get("ean", ""),
+            "product_id": p.get("product_id", ""),  # Für Hotspot-Verknüpfung
         }
         for p in selected
         if p.get("image_base64")

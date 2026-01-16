@@ -97,7 +97,11 @@ class SelectedProduct(BaseModel):
     )
     image_url: str = Field(
         ...,
-        description="URL zum Produktbild",
+        description="URL zum Hauptproduktbild",
+    )
+    images: List[str] = Field(
+        default_factory=list,
+        description="Alle Produktbild-URLs aus MeiliSearch",
     )
     selection_reason: str = Field(
         ...,

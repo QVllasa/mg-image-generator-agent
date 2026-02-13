@@ -36,3 +36,16 @@ rich>=13.0.0
 # Testing
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NEW: Production Infrastructure
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# PostgreSQL async driver
+asyncpg>=0.29.0
+
+# MinIO/S3 client
+minio>=7.2.0
+
+# SSE for real-time updates
+sse-starlette>=2.0.0

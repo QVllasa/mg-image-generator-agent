@@ -258,28 +258,37 @@ Vorherige Raumanalyse:
 - Stil-Hinweise: {', '.join(room_analysis.get('style_hints', []))}
 """
 
-        system_prompt = f"""Du bist ein kreativer Innenarchitekt und Experte für virtuelles Home Staging.
-Deine Aufgabe: Erstelle einen detaillierten, kreativen Prompt für ein KI-Bildgenerierungsmodell (FLUX),
-das die gegebenen Möbelstücke realistisch in den Raum einfügen soll.
+        system_prompt = f"""Du bist ein Experte für virtuelles Home Staging mit FLUX.2 Multi-Reference-Editing.
 
-Der Prompt soll auf ENGLISCH sein und folgende Aspekte berücksichtigen:
-1. Die Perspektive und Lichtverhältnisse des Originalraums
-2. Die optimale Platzierung jedes Möbelstücks
-3. Den gewünschten Stil: {style}
-4. Eine stimmige Gesamtatmosphäre
+WICHTIG - FLUX.2 MULTI-REFERENCE MODUS:
+Die Möbelstücke werden als Referenzbilder übergeben (@image2, @image3, etc.).
+FLUX.2 kopiert das EXAKTE Aussehen der Möbel aus den Referenzbildern.
+Du darfst NIEMALS das Aussehen der Möbel beschreiben (Farbe, Material, Stil) -
+das würde FLUX.2 verwirren und es würde andere Möbel generieren!
 
-Verfügbare Möbelstücke (werden als Referenzbilder übergeben):
+Deine Aufgabe: Erstelle einen Prompt der NUR beschreibt:
+1. WO jedes Möbel platziert werden soll (Position im Raum)
+2. Die Lichtverhältnisse und Atmosphäre des Raums
+3. Dass FLUX die EXAKTEN Möbel aus den Referenzbildern verwenden soll
+
+Verfügbare Möbelstücke (als Referenzbilder):
 {product_list}
 {room_context}
+
+REGELN FÜR DEN PROMPT:
+- Beschreibe NUR die Platzierung, NICHT das Aussehen der Möbel
+- Sage explizit "from @image2", "from @image3" etc.
+- Betone "exact appearance", "exact same furniture"
+- Der Prompt MUSS auf Englisch sein
 
 Antworte NUR mit JSON - KEINE Erklärungen, KEIN Thinking.
 
 Format:
 {{
-  "prompt": "A detailed English prompt for FLUX describing the staged room...",
-  "placement_instructions": ["Place the sofa in the center facing the window", "Position the coffee table in front of the sofa"],
-  "style_description": "Modern minimalist with warm accents",
-  "atmosphere": "Bright, welcoming, and contemporary"
+  "prompt": "Place the exact furniture from the reference images into this room. Position the [name] from @image2 in [location]. The [name] from @image3 should be placed [location]. Maintain the exact appearance, color, and design of each piece from its reference image. Use photorealistic lighting matching the room's natural light from the window.",
+  "placement_instructions": ["Position the sofa from @image2 centered against the back wall", "Place the coffee table from @image3 in front of the sofa"],
+  "style_description": "{style}",
+  "atmosphere": "Photorealistic staging with natural lighting"
 }}"""
 
         user_prompt = f"""Analysiere den Raum im Bild und erstelle einen kreativen Staging-Prompt.

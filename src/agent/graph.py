@@ -159,6 +159,11 @@ async def run_staging(
     color_preferences: Optional[List[str]] = None,
     budget_range: Optional[Dict[str, float]] = None,
     products_per_type: int = 5,
+    # Job Tracking
+    job_id: Optional[str] = None,
+    session_id: Optional[str] = None,
+    # Progress callback
+    on_progress: Optional[callable] = None,
 ) -> StagingState:
     """
     Führt den Room Staging Workflow aus.
@@ -173,6 +178,9 @@ async def run_staging(
         color_preferences: Farbpräferenzen für MeiliSearch (aktiviert MeiliSearch-Modus)
         budget_range: Preisbereich {"min": float, "max": float}
         products_per_type: Anzahl Produktkandidaten pro Möbeltyp
+        job_id: UUID des Jobs für DB-Tracking (optional)
+        session_id: Session-ID für Output-Ordner (optional)
+        on_progress: Optional async callback(node_name, state) called after each node
 
     Returns:
         Finaler StagingState mit Ergebnissen
@@ -193,6 +201,7 @@ async def run_staging(
         mode=mode,
         product_count=len(product_images) if product_images else 0,
         color_preferences=color_preferences,
+        job_id=job_id,
     )
 
     # Erstelle initialen State
@@ -208,19 +217,43 @@ async def run_staging(
         color_preferences=color_preferences,
         budget_range=budget_range,
         products_per_type=products_per_type,
+        # Job Tracking
+        job_id=job_id,
+        session_id=session_id,
     )
 
     # Hole Graph
     graph = get_room_stager_graph()
 
-    # Führe Graph aus
-    final_state = await graph.ainvoke(initial_state)
+    # Führe Graph mit Streaming aus für Live-Updates
+    final_state = None
+    async for chunk in graph.astream(initial_state, stream_mode="updates"):
+        # chunk ist dict mit {node_name: state_update}
+        for node_name, state_update in chunk.items():
+            logger.debug(f"Node abgeschlossen: {node_name}")
+
+            # Rufe Progress-Callback auf falls vorhanden
+            if on_progress:
+                try:
+                    await on_progress(node_name, state_update)
+                except Exception as e:
+                    logger.warning(f"Progress callback Fehler: {e}")
+
+            # Speichere letzten State
+            if state_update:
+                if final_state is None:
+                    final_state = dict(initial_state)
+                final_state.update(state_update)
+
+    # Falls kein State-Update kam, verwende initial_state
+    if final_state is None:
+        final_state = dict(initial_state)
 
     logger.info(
         "Room Staging abgeschlossen",
         correlation_id=correlation_id,
-        completed=final_state["completed_count"],
-        failed=final_state["failed_count"],
+        completed=final_state.get("completed_count", 0),
+        failed=final_state.get("failed_count", 0),
         mode=mode,
         session_id=final_state.get("session_id"),
         output_directory=final_state.get("output_directory"),

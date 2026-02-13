@@ -7,6 +7,7 @@ Kein Mask erforderlich, günstiger ($0.012/MP) und State-of-the-Art (Nov 2025).
 """
 
 import base64
+import os
 import time
 from typing import Optional
 
@@ -36,7 +37,8 @@ class FalService:
         self.model = config.fal.model
         self.timeout = config.fal.timeout
 
-        # Setze API Key für fal_client
+        # Setze API Key für fal_client (beide Methoden für Kompatibilität)
+        os.environ["FAL_KEY"] = self.api_key
         fal_client.api_key = self.api_key
 
         logger.info(
@@ -174,32 +176,33 @@ class FalService:
             image_urls.append(f"data:image/jpeg;base64,{product['base64']}")
 
         # Verwende kreativen Prompt falls vorhanden, sonst Standard-Template
+        # WICHTIG: FLUX.2 verwendet @image1, @image2 Syntax für Referenzen
         if creative_prompt:
-            # Erweitere den kreativen Prompt mit Bild-Referenzen
-            prompt_parts = [
-                creative_prompt,
-                "",
-                "Reference images:",
-                "- Image 1: The empty room",
-            ]
+            # Erweitere den kreativen Prompt mit FLUX.2 @image Referenzen
+            product_refs = []
             for i, product in enumerate(product_images, start=2):
                 name = product.get("name", f"furniture item {i-1}")
-                prompt_parts.append(f"- Image {i}: {name}")
-            prompt_parts.append("")
-            prompt_parts.append("Place each furniture item from its reference image into the room. "
-                               "Maintain photorealistic quality, correct perspective and natural lighting.")
-            prompt = "\n".join(prompt_parts)
+                product_refs.append(f"the {name} from @image{i}")
+
+            prompt = (
+                f"{creative_prompt}\n\n"
+                f"Place {', '.join(product_refs)} into the room shown in @image1. "
+                f"Maintain the exact appearance and style of each furniture piece from its reference image. "
+                f"Use photorealistic lighting and correct perspective."
+            )
         else:
-            # Fallback: Standard-Template
-            prompt_parts = [
-                f"Place the furniture from the reference images into the room from image 1.",
-                f"Style: {style}, photorealistic interior design photography.",
-            ]
+            # Fallback: Standard-Template mit FLUX.2 @image Syntax
+            product_refs = []
             for i, product in enumerate(product_images, start=2):
                 name = product.get("name", f"furniture item {i-1}")
-                prompt_parts.append(f"- Add the {name} from image {i}")
-            prompt_parts.append("Keep the original room lighting and perspective. Make it look realistic.")
-            prompt = "\n".join(prompt_parts)
+                product_refs.append(f"the {name} from @image{i}")
+
+            prompt = (
+                f"Transform @image1 into a {style} styled room by placing {', '.join(product_refs)}. "
+                f"Preserve the exact appearance, color, and design of each furniture piece from its reference image. "
+                f"Arrange furniture naturally in the room with photorealistic lighting and correct perspective. "
+                f"Keep the original room architecture and windows."
+            )
 
         logger.info("Multi-Reference Prompt", prompt=prompt[:500])
 

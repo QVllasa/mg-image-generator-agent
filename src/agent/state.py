@@ -137,6 +137,9 @@ class StagingState(TypedDict):
     start_time: float
     error: Optional[str]
 
+    # ═══ JOB TRACKING (NEU) ═══
+    job_id: Optional[str]  # UUID des Jobs für DB-Tracking
+
 
 def create_initial_state(
     images: List[Dict[str, str]],
@@ -150,6 +153,9 @@ def create_initial_state(
     color_preferences: Optional[List[str]] = None,
     budget_range: Optional[Dict[str, float]] = None,
     products_per_type: int = 5,
+    # Job Tracking
+    job_id: Optional[str] = None,
+    session_id: Optional[str] = None,
 ) -> StagingState:
     """
     Erstellt den initialen State für einen Staging-Request.
@@ -165,6 +171,8 @@ def create_initial_state(
         color_preferences: Bevorzugte Farben für MeiliSearch
         budget_range: Preisbereich {"min": float, "max": float}
         products_per_type: Anzahl Produktkandidaten pro Möbeltyp
+        job_id: UUID des Jobs für DB-Tracking
+        session_id: Session-ID für Output-Ordner (optional, wird generiert)
 
     Returns:
         Initialer StagingState
@@ -191,8 +199,9 @@ def create_initial_state(
             )
         )
 
-    # Generiere Session-ID für Output-Ordner
-    session_id = f"stg-{uuid.uuid4().hex[:8]}"
+    # Generiere Session-ID für Output-Ordner falls nicht übergeben
+    if not session_id:
+        session_id = f"stg-{uuid.uuid4().hex[:8]}"
 
     # Konvertiere budget_range zu BudgetRange TypedDict
     typed_budget_range: Optional[BudgetRange] = None
@@ -236,4 +245,7 @@ def create_initial_state(
         correlation_id=correlation_id,
         start_time=time.time(),
         error=None,
+
+        # Job Tracking
+        job_id=job_id,
     )

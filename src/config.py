@@ -61,6 +61,34 @@ class MeiliSearchConfig:
 
 
 @dataclass
+class DatabaseConfig:
+    """Konfiguration für PostgreSQL."""
+    host: str
+    port: int
+    user: str
+    password: str
+    database: str
+    min_connections: int = 2
+    max_connections: int = 10
+
+    @property
+    def url(self) -> str:
+        """Build PostgreSQL connection URL."""
+        return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+
+
+@dataclass
+class StorageConfig:
+    """Konfiguration für MinIO/S3."""
+    endpoint: str
+    access_key: str
+    secret_key: str
+    bucket: str
+    secure: bool = False
+    public_url: Optional[str] = None
+
+
+@dataclass
 class Config:
     """Haupt-Konfiguration."""
     vllm: VLLMConfig
@@ -68,6 +96,8 @@ class Config:
     server: ServerConfig
     limits: LimitsConfig
     meilisearch: MeiliSearchConfig
+    database: DatabaseConfig
+    storage: StorageConfig
 
 
 def get_config() -> Config:
@@ -109,6 +139,23 @@ def get_config() -> Config:
             products_index=os.getenv("MEILISEARCH_PRODUCTS_INDEX", "products"),
             metadata_filter_index=os.getenv("MEILISEARCH_FILTER_INDEX", "filter"),
             default_products_per_type=int(os.getenv("PRODUCTS_PER_TYPE", "5")),
+        ),
+        database=DatabaseConfig(
+            host=os.getenv("POSTGRES_HOST", "localhost"),
+            port=int(os.getenv("POSTGRES_PORT", "5433")),
+            user=os.getenv("POSTGRES_USER", "staging"),
+            password=os.getenv("POSTGRES_PASSWORD", "staging_secret"),
+            database=os.getenv("POSTGRES_DB", "staging_jobs"),
+            min_connections=int(os.getenv("DATABASE_MIN_CONNECTIONS", "2")),
+            max_connections=int(os.getenv("DATABASE_MAX_CONNECTIONS", "10")),
+        ),
+        storage=StorageConfig(
+            endpoint=os.getenv("MINIO_ENDPOINT", "localhost:9000"),
+            access_key=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
+            secret_key=os.getenv("MINIO_SECRET_KEY", "minioadmin"),
+            bucket=os.getenv("MINIO_BUCKET", "staging-images"),
+            secure=os.getenv("MINIO_SECURE", "false").lower() == "true",
+            public_url=os.getenv("MINIO_PUBLIC_URL", "http://localhost:9000"),
         ),
     )
 

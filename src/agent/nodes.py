@@ -423,7 +423,7 @@ def finalize_node(state: StagingState) -> Dict[str, Any]:
                 logger.info(f"Staged image gespeichert: {clean_path}")
 
         # Speichere Produktbilder (wenn vorhanden) - ALLE Bilder pro Produkt
-        selected_products = state.get("selected_products", [])
+        selected_products = state.get("selected_products") or []
         if selected_products:
             products_dir = f"{output_dir}/products"
             os.makedirs(products_dir, exist_ok=True)
@@ -463,7 +463,7 @@ def finalize_node(state: StagingState) -> Dict[str, Any]:
         metadata = {
             "session_id": session_id,
             "style": state["style"],
-            "color_preferences": state.get("color_preferences", []),
+            "color_preferences": state.get("color_preferences") or [],
             "selected_products": [
                 {
                     "product_id": p.get("product_id"),

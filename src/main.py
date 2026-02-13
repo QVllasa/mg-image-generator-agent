@@ -18,6 +18,8 @@ from src.models.request import StageRoomRequest, SuggestStageRoomRequest, Custom
 from src.models.response import StageRoomResponse, StagedImage, ProductHotspot, SelectedProduct
 from src.services.marker_service import draw_product_markers
 from src.services.meilisearch_service import get_meilisearch_service
+from src.services.database_service import get_database_service
+from src.services.storage_service import get_storage_service
 from src.utils.logging import setup_logging, get_logger, get_correlation_id
 
 # Setup Logging beim Import
@@ -42,10 +44,36 @@ async def lifespan(app: FastAPI):
         logger.error(f"Konfigurationsfehler: {e}")
         raise
 
+    # Initialize Database
+    try:
+        db = get_database_service()
+        await db.connect()
+        logger.info("Database verbunden")
+    except Exception as e:
+        logger.warning(f"Database nicht verfügbar: {e}")
+        # Don't fail startup - database is optional for legacy sync endpoints
+
+    # Initialize Storage
+    try:
+        storage = get_storage_service()
+        storage.ensure_bucket()
+        logger.info("Storage initialisiert")
+    except Exception as e:
+        logger.warning(f"Storage nicht verfügbar: {e}")
+        # Don't fail startup - storage is optional for legacy sync endpoints
+
     yield
 
     # Shutdown
     logger.info("Room Stager API wird beendet...")
+
+    # Disconnect database
+    try:
+        db = get_database_service()
+        await db.disconnect()
+        logger.info("Database getrennt")
+    except Exception:
+        pass
 
 
 # FastAPI App
@@ -64,6 +92,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register Job API Router (async job processing)
+from src.api.jobs import router as jobs_router
+app.include_router(jobs_router)
 
 
 @app.get("/health")

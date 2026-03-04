@@ -626,35 +626,6 @@ class DatabaseService:
 
         return result
 
-    # ═══════════════════════════════════════════════════════════════════════════════
-    # FEEDBACK OPERATIONS
-    # ═══════════════════════════════════════════════════════════════════════════════
-
-    async def submit_feedback(self, job_id: UUID, feedback: str) -> UUID:
-        """
-        Save or update user feedback for a job.
-
-        Uses UPSERT — one feedback per job, latest wins.
-        """
-        async with self.acquire() as conn:
-            result = await conn.fetchrow(
-                """
-                INSERT INTO job_feedback (job_id, feedback)
-                VALUES ($1, $2)
-                ON CONFLICT (job_id)
-                DO UPDATE SET feedback = $2, updated_at = NOW()
-                RETURNING id
-                """,
-                job_id,
-                feedback,
-            )
-            logger.info(
-                "Feedback gespeichert",
-                job_id=str(job_id),
-                feedback=feedback,
-            )
-            return result["id"]
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SINGLETON

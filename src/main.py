@@ -93,9 +93,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register Job API Router (async job processing)
+# Register API Routers
 from src.api.jobs import router as jobs_router
+from src.api.feedback import router as feedback_router
 app.include_router(jobs_router)
+app.include_router(feedback_router)
 
 
 @app.get("/health")

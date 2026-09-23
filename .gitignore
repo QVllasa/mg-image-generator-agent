@@ -12,6 +12,8 @@ eggs/
 .eggs/
 lib/
 lib64/
+# Ausnahme: Next.js-Dashboard-Code (war durch die Python-Vorlage versehentlich ignoriert)
+!dashboard/lib/
 parts/
 sdist/
 var/

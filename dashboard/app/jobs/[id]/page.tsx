@@ -139,7 +139,7 @@ export default function JobDetailPage() {
                       <button
                         key={img.id}
                         onClick={() => setSelectedImage(i)}
-                        className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 flex-shrink-0
+                        className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 shrink-0
                           ${i === selectedImage ? 'border-primary' : 'border-transparent'}`}
                       >
                         {img.staged_image_url ? (

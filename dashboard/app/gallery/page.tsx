@@ -80,7 +80,7 @@ export default function GalleryPage() {
       {/* Selected Image Modal */}
       {selectedImage && (
         <div
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-xs flex items-center justify-center p-4"
           onClick={() => setSelectedImage(null)}
         >
           <div
@@ -118,7 +118,7 @@ export default function GalleryPage() {
                 alt={image.filename}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="absolute bottom-2 left-2 right-2 text-white text-sm">
                   <p className="font-medium truncate">{image.sessionId}</p>
                   <p className="text-xs opacity-80">{image.style}</p>

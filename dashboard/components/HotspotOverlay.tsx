@@ -81,7 +81,7 @@ export function HotspotOverlay({ imageUrl, hotspots, onHotspotClick }: HotspotOv
 
       {/* Legend */}
       {hotspots.length > 0 && (
-        <div className="absolute bottom-2 left-2 right-2 bg-background/90 backdrop-blur rounded-lg p-2">
+        <div className="absolute bottom-2 left-2 right-2 bg-background/90 backdrop-blur-sm rounded-lg p-2">
           <div className="flex flex-wrap gap-2 text-xs">
             {hotspots.map((hotspot, index) => (
               <button
